@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "bash -c 'cd $(git rev-parse --show-toplevel) && npm install && npm run build:server'"
+buildCommand = "cd .. && npm install && npm run build:server"
 
 [deploy]
-startCommand = "bash -c 'cd $(git rev-parse --show-toplevel) && npm run start:server'"
+startCommand = "node dist/index.js"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
