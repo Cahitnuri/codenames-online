@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { socket } from '../socket/socket.client';
 import { usePlayerStore } from '../store/player.store';
 import { useGameStore } from '../store/game.store';
@@ -154,6 +154,29 @@ export default function HomePage() {
         <p className="mt-6 font-mono-code text-xs text-slate-700 text-center tracking-wide">
           2 TAKIM · 25 KELİME · 1 SUİKASTÇI · ACIMAZ
         </p>
+      </div>
+
+      {/* Local game option */}
+      <div className="mt-6 w-full max-w-md animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex-1 h-px bg-ink-500" />
+          <span className="font-mono-code text-xs text-slate-600 tracking-widest">VEYA</span>
+          <div className="flex-1 h-px bg-ink-500" />
+        </div>
+        <Link
+          to="/local"
+          className="block w-full py-3.5 rounded-2xl text-center font-semibold text-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
+          style={{
+            background: 'linear-gradient(135deg,rgba(139,74,34,0.6),rgba(90,42,14,0.7))',
+            border: '1px solid rgba(200,120,60,0.25)',
+            color: '#E0A070',
+            boxShadow: '0 2px 12px rgba(139,74,34,0.2)',
+          }}
+        >
+          <span className="mr-2">🎲</span>
+          Yerel Oyun (Hot-Seat)
+          <span className="ml-2 font-mono-code text-xs opacity-60">• Sunucu gerekmez</span>
+        </Link>
       </div>
 
       {/* Feature pills */}
