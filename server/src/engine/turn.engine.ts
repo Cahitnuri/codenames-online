@@ -196,8 +196,8 @@ export function applyEndTurn(state: GameState, reason: string): GameState {
     combo: 0,
   };
 
-  // Clear the sabotage that the current team placed (after their turn)
-  const clearedCards = clearSabotageForTeam(state.cards, state.currentTurn);
+  // Clear the sabotage that the OPPONENT team placed (it affected this turn, now expires)
+  const clearedCards = clearSabotageForTeam(state.cards, nextTeam);
 
   return {
     ...state,

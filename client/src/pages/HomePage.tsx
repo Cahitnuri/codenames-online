@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { socket } from '../socket/socket.client';
+import { socket, hasServerUrl } from '../socket/socket.client';
 import { usePlayerStore } from '../store/player.store';
 import { useGameStore } from '../store/game.store';
 
@@ -14,35 +14,45 @@ export default function HomePage() {
   const [loading, setLoading] = useState<'create' | 'join' | null>(null);
   const [error, setError] = useState('');
   const [focused, setFocused] = useState<'create' | 'join' | null>(null);
+  const [connected, setConnected] = useState(socket.connected);
 
   useEffect(() => {
-    socket.on('connect', () => setMyPlayerId(socket.id ?? ''));
-    if (socket.connected) setMyPlayerId(socket.id ?? '');
-    return () => { socket.off('connect'); };
+    const onConnect = () => { setMyPlayerId(socket.id ?? ''); setConnected(true); };
+    const onDisconnect = () => setConnected(false);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    if (socket.connected) { setMyPlayerId(socket.id ?? ''); setConnected(true); }
+    return () => { socket.off('connect', onConnect); socket.off('disconnect', onDisconnect); };
   }, [setMyPlayerId]);
 
   function handleCreate() {
-    if (!name.trim()) { setError('Enter your name first'); return; }
+    if (!name.trim()) { setError('Önce bir isim gir'); return; }
+    if (!connected) { setError('Sunucuya bağlanılamıyor. Lütfen bekle veya sayfayı yenile.'); return; }
     setError('');
     setLoading('create');
     setDisplayName(name.trim());
+    const timer = setTimeout(() => { setLoading(null); setError('Sunucu yanıt vermiyor. Lütfen tekrar dene.'); }, 8000);
     socket.emit('room:create', { displayName: name.trim() }, (res) => {
+      clearTimeout(timer);
       setLoading(null);
       if (res.ok && res.roomId) navigate(`/room/${res.roomId}`);
-      else setError(res.error ?? 'Failed to create room');
+      else setError(res.error ?? 'Oda oluşturulamadı');
     });
   }
 
   function handleJoin() {
-    if (!name.trim()) { setError('Enter your name first'); return; }
-    if (!joinCode.trim()) { setError('Enter a room code'); return; }
+    if (!name.trim()) { setError('Önce bir isim gir'); return; }
+    if (!joinCode.trim()) { setError('Oda kodu gir'); return; }
+    if (!connected) { setError('Sunucuya bağlanılamıyor. Lütfen bekle veya sayfayı yenile.'); return; }
     setError('');
     setLoading('join');
     setDisplayName(name.trim());
+    const timer = setTimeout(() => { setLoading(null); setError('Sunucu yanıt vermiyor. Lütfen tekrar dene.'); }, 8000);
     socket.emit('room:join', { roomId: joinCode.trim().toUpperCase(), displayName: name.trim() }, (res) => {
+      clearTimeout(timer);
       setLoading(null);
       if (res.ok) navigate(`/room/${joinCode.trim().toUpperCase()}`);
-      else setError(res.error ?? 'Failed to join room');
+      else setError(res.error ?? 'Odaya katılınamadı');
     });
   }
 
@@ -154,6 +164,16 @@ export default function HomePage() {
         <p className="mt-6 font-mono-code text-xs text-slate-700 text-center tracking-wide">
           2 TAKIM · 25 KELİME · 1 SUİKASTÇI · ACIMAZ
         </p>
+        {!hasServerUrl && (
+          <p className="mt-2 font-mono-code text-xs text-amber-600 text-center">
+            ⚠ VITE_SERVER_URL tanımlı değil — online mod çalışmaz
+          </p>
+        )}
+        {hasServerUrl && (
+          <p className="mt-2 font-mono-code text-xs text-center" style={{ color: connected ? '#4ade80' : '#f87171' }}>
+            {connected ? '● Sunucuya bağlı' : '○ Sunucuya bağlanılıyor...'}
+          </p>
+        )}
       </div>
 
       {/* Local game option */}

@@ -33,7 +33,7 @@ export function registerAbilityHandlers(
       bluffTeam: toggling ? null : team,
       teams: {
         ...game.teams,
-        [team]: { ...game.teams[team], bluffUsed: !toggling ? true : game.teams[team].bluffUsed },
+        [team]: { ...game.teams[team], bluffUsed: toggling ? true : game.teams[team].bluffUsed },
       },
     };
 
