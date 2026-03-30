@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KodAdlar – Türkçe Codenames</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:          #7B3A18;
+  --bg-dark:     #5C2A0E;
+  --bg-mid:      #6A3214;
+  --red:         #C0533A;
+  --red-light:   #E07060;
+  --red-dark:    #8C3020;
+  --blue:        #3F72A0;
+  --blue-light:  #60A0D8;
+  --blue-dark:   #2A5070;
+  --neutral:     #8A7550;
+  --neutral-bg:  #C8B080;
+  --assassin:    #1A1A1A;
+  --parchment:   #D8C8A0;
+  --parchment2:  #C8B888;
+  --text:        #F0E8D8;
+  --text2:       rgba(240,232,216,.65);
+  --panel:       rgba(0,0,0,.28);
+  --topbar:      rgba(0,0,0,.48);
+  --border:      rgba(255,255,255,.08);
+}
+
+html { height: 100%; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: radial-gradient(ellipse 120% 100% at 50% 0%, #8B4A22 0%, #5C2A0E 100%);
+  min-height: 100vh;
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ─── SCROLLBAR ────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 3px; }
+
+/* ─── TOP BAR ──────────────────────────────────────── */
+#topbar {
+  height: 52px;
+  background: var(--topbar);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.topbar-logo {
+  font-family: 'Oswald', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  flex-shrink: 0;
+}
+.logo-red  { color: var(--red-light); }
+.logo-blue { color: var(--blue-light); }
+.logo-dot  { color: rgba(255,255,255,.4); margin: 0 2px; }
+
+#status-text {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: .01em;
+}
+
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.btn-pill {
+  background: rgba(255,200,0,.8);
+  color: #1a1a1a;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.btn {
+  background: rgba(255,255,255,.1);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.15);
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.btn:hover { background: rgba(255,255,255,.18); }
+.btn.active { background: rgba(255,200,0,.25); border-color: rgba(255,200,0,.5); }
+.btn-red  { background: var(--red);  border-color: var(--red);  color: #fff; }
+.btn-red:hover  { background: var(--red-dark); }
+.btn-blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn-blue:hover { background: var(--blue-dark); }
+
+/* ─── MAIN LAYOUT ──────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#main {
+  display: grid;
+  grid-template-columns: 148px 1fr 148px 196px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── TEAM PANELS ──────────────────────────────────── */
+.team-panel {
+  background: var(--panel);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+.team-panel.blue { border-right: none; border-left: 1px solid var(--border); }
+
+.team-avatar {
+  width: 70px; height: 70px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center; justify-content: center;
+  font-size: 30px;
+  border: 2px solid rgba(255,255,255,.15);
+  position: relative;
+  overflow: hidden;
+}
+.team-avatar.red  { background: linear-gradient(145deg, var(--red), var(--red-dark)); }
+.team-avatar.blue { background: linear-gradient(145deg, var(--blue), var(--blue-dark)); }
+
+.team-score {
+  font-family: 'Oswald', sans-serif;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+}
+.red  .team-score { color: #FF9080; }
+.blue .team-score { color: #80C8FF; }
+
+.team-score-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text2);
+  margin-top: -6px;
+}
+
+.turn-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 4px 10px;
+  width: 100%;
+  justify-content: center;
+}
+.turn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.75)} }
+.turn-badge-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.team-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255,255,255,.08);
+  margin: 4px 0;
+}
+
+.members-section { width: 100%; }
+.members-role {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text2);
+  margin-bottom: 3px;
+}
+.member-name {
+  font-size: 12px;
+  color: var(--text);
+  padding: 1px 0;
+}
+
+/* ─── BOARD SECTION ────────────────────────────────── */
+#board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px 10px;
+  overflow-y: auto;
+  gap: 14px;
+}
+
+/* ─── BOARD GRID ───────────────────────────────────── */
+#board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+  width: 100%;
+  max-width: 640px;
+}
+
+/* ─── CARDS ────────────────────────────────────────── */
+.card {
+  aspect-ratio: 3.2 / 2.2;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,.1);
+  box-shadow: 0 3px 10px rgba(0,0,0,.35);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+  user-select: none;
+}
+.card.clickable:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 20px rgba(0,0,0,.5);
+  border-color: rgba(255,255,255,.28);
+}
+.card.not-clickable { cursor: default; }
+
+/* Hidden */
+.card.hidden {
+  background: linear-gradient(155deg, #D8C8A0 0%, #C0AA78 100%);
+}
+.card.hidden::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -52deg,
+    transparent 0, transparent 7px,
+    rgba(0,0,0,.03) 7px, rgba(0,0,0,.03) 8px
+  );
+}
+.card.hidden::after {
+  content: '';
+  position: absolute;
+  top: 5px; right: 5px;
+  width: 18px; height: 18px;
+  border: 1.5px solid rgba(0,0,0,.15);
+  border-radius: 3px;
+}
+/* Subtle hue variations on hidden cards */
+.card.hidden:nth-child(5n+2) { background: linear-gradient(155deg,#D4C49A 0%,#BCA870 100%); }
+.card.hidden:nth-child(5n+3) { background: linear-gradient(155deg,#DCC8A4 0%,#C4AE80 100%); }
+.card.hidden:nth-child(5n+4) { background: linear-gradient(155deg,#D0C098 0%,#BAA46C 100%); }
+
+/* Revealed */
+.card.r-red      { background: linear-gradient(155deg, #C8604A 0%, #8C3020 100%); border-color: rgba(200,96,74,.5); }
+.card.r-blue     { background: linear-gradient(155deg, #4880B0 0%, #284868 100%); border-color: rgba(72,128,176,.5); }
+.card.r-neutral  { background: linear-gradient(155deg, #8A7550 0%, #5C4C30 100%); border-color: rgba(138,117,80,.4); }
+.card.r-assassin { background: linear-gradient(155deg, #282828 0%, #0A0A0A 100%); border-color: rgba(120,120,120,.3); }
+
+/* Spymaster tint overlay (hidden cards only) */
+.spy-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 8px;
+}
+.spy-red     .spy-tint { background: rgba(192,83,58,.35); }
+.spy-blue    .spy-tint { background: rgba(63,114,160,.35); }
+.spy-neutral .spy-tint { background: rgba(138,117,80,.2); }
+.spy-assassin .spy-tint { background: rgba(20,20,20,.55); }
+
+/* Spymaster border */
+.spy-red     { border-color: rgba(192,83,58,.7) !important; }
+.spy-blue    { border-color: rgba(63,114,160,.7) !important; }
+.spy-assassin { border-color: rgba(100,100,100,.6) !important; }
+
+/* Tiny type label in spymaster mode */
+.spy-type-label {
+  position: absolute;
+  top: 5px; left: 6px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  opacity: .8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0,0,0,.35);
+  pointer-events: none;
+}
+.spy-red  .spy-type-label { color: #FFAA98; }
+.spy-blue .spy-type-label { color: #98D0FF; }
+.spy-neutral .spy-type-label { color: #D8C898; }
+.spy-assassin .spy-type-label { color: #CCCCCC; }
+
+/* Word label */
+.card-word {
+  position: absolute;
+  bottom: 6px; left: 5px; right: 5px;
+  background: rgba(0,0,0,.45);
+  color: #F5EEE0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 3px 6px;
+  border-radius: 5px;
+  text-align: center;
+  line-height: 1.35;
+  word-break: break-word;
+  hyphens: auto;
+}
+.card.r-red .card-word,
+.card.r-blue .card-word    { background: rgba(0,0,0,.3); color: #fff; }
+.card.r-neutral .card-word { background: rgba(0,0,0,.35); color: #E8D8B8; }
+.card.r-assassin .card-word { background: rgba(255,255,255,.08); color: #CCCCCC; }
+
+/* Reveal animation */
+@keyframes revealPop {
+  0%   { transform: scale(.88); opacity: .6; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.card.just-revealed { animation: revealPop .35s ease-out forwards; }
+
+/* ─── CLUE AREA ────────────────────────────────────── */
+#clue-area {
+  width: 100%;
+  max-width: 640px;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.clue-display {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(0,0,0,.42);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  padding: 10px 28px;
+}
+.clue-word-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.clue-count-big {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: rgba(255,255,255,.55);
+}
+
+.clue-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.clue-input {
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.2);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font: 600 15px/1 'Inter', sans-serif;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  width: 200px;
+  outline: none;
+  transition: border-color .15s;
+}
+.clue-input:focus { border-color: rgba(255,255,255,.4); }
+.clue-input::placeholder { text-transform: none; color: rgba(255,255,255,.28); letter-spacing: 0; }
+
+.clue-count-select {
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.2);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: 600 15px/1 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+.clue-count-select option { background: #2a1a0a; }
+
+.clue-help {
+  font-size: 11px;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.operative-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.guesses-pill {
+  font-size: 12px;
+  color: var(--text2);
+  background: rgba(0,0,0,.3);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+.phase-hint {
+  font-size: 14px;
+  color: var(--text2);
+  text-align: center;
+  padding: 12px;
+}
+
+/* ─── LOG PANEL ────────────────────────────────────── */
+#log-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+}
+.log-header {
+  padding: 11px 14px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#log-entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.log-entry {
+  font-size: 11.5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  line-height: 1.45;
+  animation: logIn .25s ease-out;
+}
+@keyframes logIn { from{opacity:0;transform:translateX(8px)} to{opacity:1;transform:none} }
+.log-entry.red     { color: #FF9080; }
+.log-entry.blue    { color: #80C0FF; }
+.log-entry.neutral { color: var(--text2); }
+.log-entry.assassin{ color: #FF5050; font-weight: 700; }
+.log-entry.system  { color: rgba(240,232,216,.38); font-style: italic; }
+.log-entry.winner  { color: #FFD060; font-weight: 700; background: rgba(255,208,96,.06); }
+.log-entry.clue-red  { color: #FF9080; font-weight: 600; }
+.log-entry.clue-blue { color: #80C0FF; font-weight: 600; }
+
+/* ─── OVERLAY (Spy Transition) ─────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  animation: fadeIn .2s ease-out;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.modal {
+  background: linear-gradient(160deg, #2A1A0A 0%, #180A00 100%);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 36px 52px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,.8);
+  max-width: 400px;
+  width: 90%;
+  animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{transform:scale(.88);opacity:0} to{transform:scale(1);opacity:1} }
+
+.modal h2 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: .04em;
+}
+.modal p {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 26px;
+}
+.modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ─── GAME OVER ────────────────────────────────────── */
+#gameover-overlay { display: none; }
+#gameover-overlay.visible { display: flex; }
+
+.gameover-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 46px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 6px;
+}
+.gameover-subtitle {
+  font-size: 16px;
+  color: var(--text2);
+  margin-bottom: 32px;
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 880px) {
+  #main { grid-template-columns: 120px 1fr 120px; }
+  #log-panel { display: none; }
+}
+@media (max-width: 640px) {
+  #main { grid-template-columns: 100px 1fr; }
+  .team-panel.blue { display: none; }
+  .card-word { font-size: 8.5px; }
+}
+@media (max-width: 480px) {
+  #main { grid-template-columns: 1fr; }
+  .team-panel.red { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top Bar -->
+  <header id="topbar">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div class="topbar-logo">
+        <span class="logo-red">KOD</span><span class="logo-dot">·</span><span class="logo-blue">ADLAR</span>
+      </div>
+      <span class="btn-pill">🔒 Hotseat</span>
+    </div>
+    <div id="status-text">Yükleniyor…</div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </header>
+
+  <!-- Main Layout -->
+  <div id="main">
+    <aside class="team-panel red"  id="panel-red"></aside>
+    <section id="board-section">
+      <div id="board"></div>
+      <div id="clue-area"></div>
+    </section>
+    <aside class="team-panel blue" id="panel-blue"></aside>
+    <div id="log-panel">
+      <div class="log-header">Oyun Günlüğü</div>
+      <div id="log-entries"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Spy Transition Overlay -->
+<div class="overlay" id="spy-overlay" style="display:none">
+  <div class="modal">
+    <h2 id="spy-overlay-title">🕵️ Casus Turu</h2>
+    <p id="spy-overlay-body">Diğer oyuncular ekrandan uzaklaşsın.<br>Hazır olduğunda devam et.</p>
+    <div class="modal-actions">
+      <button class="btn" id="spy-overlay-skip" onclick="spyOverlaySkip()">İpucusuz Geç</button>
+      <button class="btn" id="spy-overlay-continue" onclick="spyOverlayContinue()">Casus Görünümünü Aç</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="gameover-overlay">
+  <div class="modal">
+    <div class="gameover-title" id="gameover-title">—</div>
+    <div class="gameover-subtitle" id="gameover-subtitle">—</div>
+    <div class="modal-actions">
+      <button class="btn" id="gameover-btn" onclick="newGame()">↺ Yeni Oyun</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   WORD DATASET  (Türkçe, case-insensitive deduplicated)
+================================================================ */
+const RAW_WORDS = [
+  "ABD","ada","Adalet","Afrika","Ahlak","ajans","Akademi","Akciğer","Akdeniz",
+  "Aksesuar","Aksiyon","akvaryum","Albüm","Alfabe","Algoritma","alkış","Alpler",
+  "Altyazı","altın","Altın Koza","Altın Portakal","alışveriş","Amazon Nehri",
+  "Amazon Ormanı","Ameliyat","Amik Ovası","an","Anadolu","Anadolu Rock",
+  "anahtar","And Dağları","Ankara","Anlaşma","Antarktika","Antep Fıstığı",
+  "Antrenör","anıt","Apartman","Arabesk","Araç","Arkeolog","Armut","Arpa",
+  "arı","asa","asansör","aslan","Asteroit","Astronomi","Astronot","Asya","At",
+  "ateş","Atlas Okyanusu","Atletizm","Atom","Avrupa","Avukat","ay","Ayasofya",
+  "ayna","Ayı","Ağ","ağaç","Ağrı Dağı","Aşık Veysel","bahar","bahçe","Bakteri",
+  "bal","Bale","Balina","Balkanlar","balon","Baltık Denizi","balık","banka",
+  "bardak","barış","Basketbol","Batı","Bayrak","bayram","Bağlama","Başkan",
+  "Başrol","Belediye","Belgesel","Bergama","Besteci","Beyin","Beyşehir Gölü",
+  "biber","bilet","Bilgisayar","Bilim","Birleşmiş Milletler","Bisiklet","Bitki",
+  "Biyoloji","Biyoteknoloji","Boks","Borsa","borç","Boya","Bronz","Buluntu",
+  "bulut","Buluş","burun","buz","Buğday","Böbrek","Böcek","büyü","Büyük Kanyon",
+  "Büyük Menderes","bıçak","Cadde","Caz","Cerrah","Cumhuriyet","Cümle","dal",
+  "dalga","dans","dağ","Dede Korkut","Defile","defter","Dekor","Demir",
+  "Demokrasi","Deney","deniz","Denizatı","Dergi","Devlet","Dicle","Dil",
+  "Dilbilgisi","dinozor","Divan","Divanü Lügati't-Türk","Dizi","DNA","Doktor",
+  "Domates","Donanım","Doğa","Doğu","Doğu Anadolu","Dram","Dublaj","Dublör",
+  "duman","duvar","dükkan","Ebru","Eczacı","Edebiyat","Efekt","Efes","Ege",
+  "Ege Denizi","ejderha","ekmek","Ekonomi","ekran","Elektrik","elma","elmas",
+  "Erciyes Dağı","Eser","Estetik","Etik","Ev","Everest","Evren","Eğirdir Gölü",
+  "Fantezi","Felsefe","fener","festival","fikir","fil","file","film",
+  "Film Müziği","Film Şeridi","fiyat","Fizik","Forma","fosil","Fragman",
+  "Fransa","Frigya","Futbol","Fındık","Fırat","fırtına","fırça","Galaksi",
+  "Galası","Galeri","Gazete","Gazeteci","gece","Gediz","gemi","Gen","Genetik",
+  "gezegen","geçit","Girişimcilik","gitar","gizem","Gobi Çölü","gol","Grönland",
+  "Göbeklitepe","gökkuşağı","Gökyüzü","göl","gölge","gül","gümüş","gündüz",
+  "Güney","Güney Amerika","Güneydoğu Anadolu","güneş","Güreş",
+  "Hababam Sınıfı","Haber","Hacivat","Hakem","Hakim","Halay","halı","harita",
+  "Hasta","Hastane","Hava","Havalimanı","Hawaii","Hayvan","Hayvancılık",
+  "Hazar Denizi","hazine","Hemşire","heyelan","Heykel","Heykeltraş","Hicaz",
+  "Himalayalar","Hint Alt Kıtası","Hint Okyanusu","Hitit","Hollywood",
+  "hoparlör","Horon","Hukuk","Hücre","iksir","Ilgaz Dağları","inci","internet",
+  "iskele","Iğdır Ovası","Işık","İcat","İhracat","İklim","İlaç","İngiltere",
+  "İnovasyon","İskandinavya","İspanya","İstanbul","İstanbul Boğazı","İstasyon",
+  "İtalya","İthalat","İzmir","İç Anadolu","K2","Kafe","Kafkasya","kalem",
+  "kalkan","Kalp","kamera","kampanya","Kan","Kanada","Kapadokya","kaplan",
+  "kaplumbağa","kaptan","kapı","kar","Kara Delik","Karaciğer","Karadeniz",
+  "Karadeniz Müziği","Karagöz","Karapınar","Karate","Karpuz","kartal","karınca",
+  "Kas","kasa","Kavram","Kavun","Kayak","kayalık","Kazı","Kaçkar Dağları",
+  "kaşık","kedi","kelebek","kertenkele","Kervansaray","Keşif","Kilimanjaro",
+  "kilit","Kimya","Kiraz","kitap","Klasik","Klonlama","Kod","Komedi","Konser",
+  "Konya","Konya Ovası","koridor","Korku Filmi","korsan","Kostüm","koy","Koşu",
+  "krallık","krater","kredi","Kripto","kulaklık","kule","kum","Kupa","kurbağa",
+  "Kurgu","Kurt","Kutadgu Bilig","kutu","Kuzey","Kuzey Amerika","Kuş","kök",
+  "köpek","köprü","Köprüçay","Köy","Kültür","Küre Dağları","kütüphane","kılıç",
+  "Kısa Film","kıyı","Kızılcahamam","Kızıldeniz","Kızılırmak","kış","labirent",
+  "Laboratuvar","lale","lazer","liman","limon","logo","Madagaskar","madalya",
+  "Mahalle","Mahkeme","makbuz","makine","Makine Öğrenimi","Manavgat","Mantık",
+  "Manyas Gölü","marka","Marmara","Marmara Denizi","Mars","masa","maske",
+  "Matematik","maymun","Maç","mağara","Mbappe","Meclis","melodi","menekşe",
+  "mercan","merdiven","Messi","Metal","Mevlana","meydan","meyve","meşale",
+  "mikrofon","Mikrop","Mikroskop","Millet","Mimar Sinan","Mississippi Nehri",
+  "miğfer","Moda","Model","Muhabir","mum","mutfak","Mühendis","Müze","müzik",
+  "Mısır","Nasreddin Hoca","NATO","nehir","Nemrut","Niagara Şelalesi",
+  "Nihavent","Nil Nehri","nota","oda","ok","Okul","Okyanusya","Olimpiyat",
+  "Opera","Organ","Orhun","Orkestra","orman","Orta Doğu","Oscar","Osmanlı",
+  "Otantik","Otobüs","Oyuncu","Palandöken","Palet","Pamuk","Pamukkale",
+  "papatya","Para","Parfüm","Park","Pasaport","Pasifik Okyanusu","Patlıcan",
+  "pazar","pazarlık","Penaltı","Perde","peynir","pil","pist","piyano","plan",
+  "Polinezya","Pop","portakal","portal","prens","prenses","Prodüksiyon",
+  "Profesör","Programlama","Protesto","pusula","radar","Radyo","raket","Rakip",
+  "Rast","reklam","Rekor","renk","Resim","Ressam","Restoran","ritim","Robot",
+  "Robotik","Rock","Roket","rol","Roman","Romantik","Ronaldo","Röportaj",
+  "rüzgar","saat","Saha","Sahara","sahne","Sakarya Nehri","Saklıkent","Salah",
+  "salon","Sanatçı","Sanayi","sandık","saray","Sarımsak","savaş","Savcı",
+  "Selçuklu","Senarist","Senaryo","servet","Ses","Set","Seyahat","Seçim",
+  "Sibirya","Sibirya Taygası","sigorta","sihir","Sinema","Sinema Salonu",
+  "Sinir","sis","Siyaset","Skor","Sokak","sonbahar","Soğan","Spor","spot",
+  "stadyum","Stil","strateji","Sunucu","sunum","Sözlük","Sümela","tabak",
+  "Tablo","Taekwondo","Tahıl","Taktik","takvim","tapınak","Taraftar","Tarayıcı",
+  "Tarih","Tarihi Yarımada","Tarihçi","Tarihî Film","Tarım","tasarım","Taverna",
+  "Tavşan","taç","Taş","Tedavi","tekne","Teknoloji","telefon","Teleskop",
+  "Televizyon","Tenis","tezgah","Ticaret","Tilki","Tiyatro","tohum","Ton","top",
+  "Topkapı","Toprak","Toros Dağları","Trafik","Trakya","tren","Tribün","Troya",
+  "Tuval","Tuz Gölü","Tünel","Türk Halk Müziği","Türk Rap","Türk Rock",
+  "Türk Sanat Müziği","Türk Sineması","Türkçe Pop","Türkü","Uludağ","Urartu",
+  "uydu","Uzay","Uzay Yarışı","Uzun Metraj","uçak","Vali","Van Gölü","Veri",
+  "Victoria Şelalesi","Virüs","Vize","Voleybol","Volga Nehri","volkan",
+  "Yangtze Nehri","yansıma","yaprak","Yardımcı Oyuncu","yarış","yastık",
+  "yatırım","yay","Yaya","yaz","yazar","Yazı","Yazılım","yağmur","yelken",
+  "Yeni Zelanda","Yeşilçam","Yeşilırmak","Yol","Yulaf","Yunus Emre","Yön",
+  "Yönetmen","Yüzme","yılan","yıldız","zaman","zebra","Zeybek","Zeytin",
+  "zincir","zümrüt","zürafa","çalı","Çanakkale Boğazı","çanta","çarşı",
+  "çatal","çatı","çit","çiçek","Çukurova","çöl","çığ","örümcek","Öğrenci",
+  "Üniversite","Üretim","Üzüm","ışık","Şair","Şampiyon","şarkı","şehir",
+  "şeker","Şiir","şimşek","şişe","şövalye"
+];
+
+// Deduplicate (case-insensitive – keep first occurrence)
+const WORDS = [...new Map(RAW_WORDS.map(w => [w.toLocaleLowerCase('tr'), w])).values()];
+
+/* ================================================================
+   GAME STATE
+================================================================ */
+let G = {};
+
+function newGame() {
+  const first = Math.random() < .5 ? 'red' : 'blue';
+  const totals = { red: first === 'red' ? 9 : 8, blue: first === 'blue' ? 9 : 8 };
+
+  const words = shuffle(WORDS).slice(0, 25);
+  const types = shuffle([
+    ...Array(totals.red).fill('red'),
+    ...Array(totals.blue).fill('blue'),
+    ...Array(7).fill('neutral'),
+    'assassin',
+  ]);
+
+  G = {
+    board: words.map((word, i) => ({ word, type: types[i], revealed: false })),
+    turn:  first,
+    phase: 'spymaster',     // 'spymaster' | 'operative' | 'over'
+    clue:  null,
+    guessesLeft: 0,
+    log:   [],
+    winner: null,
+    spymasterView: false,
+    totals,
+    scores: { red: 0, blue: 0 },
+    lastRevealedIdx: -1,
+  };
+
+  const tName = first === 'red' ? 'Kırmızı' : 'Mavi';
+  addLog(`Yeni oyun! ${tName} takım başlıyor (${totals[first]} kart).`, 'system');
+
+  hideGameOver();
+  showSpyOverlay(first, false);
+  render();
+}
+
+/* ================================================================
+   CORE MECHANICS
+================================================================ */
+function submitClue(word, rawCount) {
+  if (!word.trim()) return;
+  const count = rawCount === '0' ? 0 : parseInt(rawCount);
+  G.clue = { word: word.trim().toUpperCase(), count };
+  G.guessesLeft = count === 0 ? 99 : count + 1;
+  G.phase = 'operative';
+  G.spymasterView = false;
+
+  const tName = G.turn === 'red' ? 'Kırmızı' : 'Mavi';
+  addLog(`${tName} Casus: ${G.clue.word}  ${count === 0 ? '∞' : count}`, `clue-${G.turn}`);
+  render();
+}
+
+function guessCard(idx) {
+  if (G.phase !== 'operative' || G.board[idx].revealed || G.winner) return;
+
+  const card = G.board[idx];
+  card.revealed = true;
+  G.lastRevealedIdx = idx;
+
+  const tName  = G.turn === 'red' ? 'Kırmızı' : 'Mavi';
+  const oppTeam = G.turn === 'red' ? 'blue' : 'red';
+  const oppName = G.turn === 'red' ? 'Mavi' : 'Kırmızı';
+
+  const typeTR = { red:'kırmızı', blue:'mavi', neutral:'nötr', assassin:'SUİKASTÇI' }[card.type];
+  addLog(`${tName} → ${card.word.toUpperCase()} (${typeTR})`, card.type === 'neutral' ? 'neutral' : card.type);
+
+  if (card.type === 'assassin') {
+    G.winner = oppTeam;
+    G.phase = 'over';
+    addLog(`💀 ${tName} Suikastçıyı açtı! ${oppName} kazandı!`, 'assassin');
+    showGameOver(oppTeam, 'assassin');
+    render(); return;
+  }
+
+  if (card.type === G.turn) {
+    G.scores[G.turn]++;
+    G.guessesLeft--;
+    if (G.scores[G.turn] >= G.totals[G.turn]) {
+      G.winner = G.turn;
+      G.phase = 'over';
+      addLog(`🎉 ${tName} tüm kartlarını buldu! Kazandı!`, 'winner');
+      showGameOver(G.turn, 'normal');
+      render(); return;
+    }
+    if (G.guessesLeft <= 0) {
+      addLog(`${tName} tüm tahmin hakkını kullandı.`, 'system');
+      nextTurn();
+    }
+  } else {
+    if (card.type !== 'neutral') {
+      G.scores[oppTeam]++;
+      if (G.scores[oppTeam] >= G.totals[oppTeam]) {
+        G.winner = oppTeam;
+        G.phase = 'over';
+        addLog(`🎉 ${oppName} tüm kartlarını buldu! Kazandı!`, 'winner');
+        showGameOver(oppTeam, 'normal');
+        render(); return;
+      }
+    }
+    addLog(`Yanlış tahmin. Sıra ${oppName} takımına geçti.`, 'system');
+    nextTurn();
+  }
+  render();
+}
+
+function endTurn() {
+  const tName = G.turn === 'red' ? 'Kırmızı' : 'Mavi';
+  addLog(`${tName} turu erken bitirdi.`, 'system');
+  nextTurn();
+  render();
+}
+
+function nextTurn() {
+  G.turn = G.turn === 'red' ? 'blue' : 'red';
+  G.phase = 'spymaster';
+  G.clue = null;
+  G.guessesLeft = 0;
+  G.spymasterView = false;
+  G.lastRevealedIdx = -1;
+  showSpyOverlay(G.turn, false);
+}
+
+function toggleSpymasterView() {
+  G.spymasterView = !G.spymasterView;
+  render();
+}
+
+/* ================================================================
+   SPY OVERLAY
+================================================================ */
+function showSpyOverlay(team, skipOption) {
+  const overlay = document.getElementById('spy-overlay');
+  const title   = document.getElementById('spy-overlay-title');
+  const body    = document.getElementById('spy-overlay-body');
+  const skipBtn = document.getElementById('spy-overlay-skip');
+  const contBtn = document.getElementById('spy-overlay-continue');
+
+  const name = team === 'red' ? 'Kırmızı' : 'Mavi';
+  const icon = team === 'red' ? '🔴' : '🔵';
+
+  title.textContent = `${icon} ${name} Casus Turu`;
+  title.style.color = team === 'red' ? '#FF9080' : '#80C0FF';
+  body.textContent  = 'Diğer oyuncular ekrandan uzaklaşsın. Casus görünümünü açmak için devam et.';
+  contBtn.className = `btn btn-${team}`;
+  skipBtn.style.display = skipOption ? '' : '';
+
+  overlay.style.display = 'flex';
+}
+
+function spyOverlayContinue() {
+  document.getElementById('spy-overlay').style.display = 'none';
+  G.spymasterView = true;
+  render();
+}
+
+function spyOverlaySkip() {
+  document.getElementById('spy-overlay').style.display = 'none';
+  // Treat as if spymaster gave an empty clue (just end the view phase without a clue)
+  // Actually let spymaster see board and enter clue normally
+  render();
+}
+
+/* ================================================================
+   GAME OVER OVERLAY
+================================================================ */
+function showGameOver(winner, reason) {
+  const overlay   = document.getElementById('gameover-overlay');
+  const title     = document.getElementById('gameover-title');
+  const subtitle  = document.getElementById('gameover-subtitle');
+  const btn       = document.getElementById('gameover-btn');
+
+  const name  = winner === 'red' ? 'Kırmızı' : 'Mavi';
+  const color = winner === 'red' ? '#FF9080' : '#80C0FF';
+
+  title.textContent = `${name} Kazandı!`;
+  title.style.color = color;
+  subtitle.textContent = reason === 'assassin'
+    ? '💀 Suikastçı kart açıldı!'
+    : '🎉 Tüm kartlar bulundu!';
+  btn.className = `btn btn-${winner}`;
+
+  overlay.classList.add('visible');
+}
+
+function hideGameOver() {
+  document.getElementById('gameover-overlay').classList.remove('visible');
+}
+
+/* ================================================================
+   LOG
+================================================================ */
+function addLog(text, type = 'system') {
+  G.log.unshift({ text, type, id: Date.now() + Math.random() });
+  if (G.log.length > 60) G.log.pop();
+}
+
+/* ================================================================
+   RENDER
+================================================================ */
+function render() {
+  renderTopBar();
+  renderPanel('red');
+  renderPanel('blue');
+  renderBoard();
+  renderClueArea();
+  renderLog();
+}
+
+/* ── Top Bar ─────────────────────────────────────────────────── */
+function renderTopBar() {
+  document.getElementById('status-text').textContent = getStatusText();
+
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+
+  if (G.phase === 'spymaster' && !G.winner) {
+    const spyBtn = el('button', 'btn' + (G.spymasterView ? ' active' : ''));
+    spyBtn.textContent = G.spymasterView ? '🔍 Casus Açık' : '🔍 Casus Görünümü';
+    spyBtn.onclick = toggleSpymasterView;
+    actions.appendChild(spyBtn);
+  }
+
+  const ng = el('button', 'btn');
+  ng.textContent = '↺ Yeni Oyun';
+  ng.onclick = newGame;
+  actions.appendChild(ng);
+}
+
+function getStatusText() {
+  if (G.winner) {
+    const n = G.winner === 'red' ? 'Kırmızı' : 'Mavi';
+    return `🏆 ${n} Takım Kazandı!`;
+  }
+  const n = G.turn === 'red' ? 'Kırmızı' : 'Mavi';
+  if (G.phase === 'spymaster') return `${n} casus ipucunu veriyor…`;
+  if (G.phase === 'operative') {
+    const rem = G.clue && G.clue.count === 0 ? '∞' : G.guessesLeft;
+    return `${n} operatörler tahmin yapıyor… (${rem} hak kaldı)`;
+  }
+  return '';
+}
+
+/* ── Team Panels ─────────────────────────────────────────────── */
+function renderPanel(team) {
+  const panel  = document.getElementById(`panel-${team}`);
+  const isActive = G.turn === team && !G.winner;
+  const rem    = G.totals[team] - G.scores[team];
+  const icon   = team === 'red' ? '🔴' : '🔵';
+
+  panel.innerHTML = `
+    <div class="team-avatar ${team}">${icon}</div>
+    <div style="font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;
+         text-transform:uppercase;letter-spacing:.1em;color:var(--text2);">
+      ${team === 'red' ? 'Kırmızı' : 'Mavi'} Takım
+    </div>
+    <div class="team-score">${rem}</div>
+    <div class="team-score-label">kart kaldı</div>
+    ${isActive ? `
+      <div class="turn-badge">
+        <span class="turn-dot" style="background:${team==='red'?'var(--red-light)':'var(--blue-light)'}"></span>
+        <span class="turn-badge-label">${G.phase === 'spymaster' ? 'Casus' : 'Operatör'}</span>
+      </div>` : ''}
+    <div class="team-divider"></div>
+    <div class="members-section">
+      <div class="members-role">Operatör(ler)</div>
+      <div class="member-name">Oyuncu A</div>
+      <div class="members-role" style="margin-top:6px">Casus(lar)</div>
+      <div class="member-name">Oyuncu B</div>
+    </div>
+  `;
+}
+
+/* ── Board ───────────────────────────────────────────────────── */
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+
+  G.board.forEach((card, idx) => {
+    const div = el('div', buildCardClass(card, idx));
+
+    // Spy tint overlay
+    if (!card.revealed && G.spymasterView) {
+      const tint = el('div', 'spy-tint');
+      div.appendChild(tint);
+      const lbl = el('div', 'spy-type-label');
+      lbl.textContent = { red:'K', blue:'M', neutral:'N', assassin:'⚠' }[card.type];
+      div.appendChild(lbl);
+    }
+
+    // Word label
+    const wordEl = el('span', 'card-word');
+    wordEl.textContent = card.word;
+    div.appendChild(wordEl);
+
+    if (!card.revealed && G.phase === 'operative' && !G.winner) {
+      div.onclick = () => guessCard(idx);
+    }
+
+    if (idx === G.lastRevealedIdx) {
+      div.classList.add('just-revealed');
+    }
+
+    boardEl.appendChild(div);
+  });
+}
+
+function buildCardClass(card, idx) {
+  let cls = 'card';
+  if (card.revealed) {
+    cls += ` r-${card.type} not-clickable`;
+  } else {
+    cls += ' hidden';
+    if (G.spymasterView) cls += ` spy-${card.type}`;
+    if (G.phase === 'operative' && !G.winner) cls += ' clickable';
+    else cls += ' not-clickable';
+  }
+  return cls;
+}
+
+/* ── Clue Area ───────────────────────────────────────────────── */
+function renderClueArea() {
+  const area = document.getElementById('clue-area');
+  area.innerHTML = '';
+
+  if (G.phase === 'over' || G.winner) return;
+
+  if (G.phase === 'operative' && G.clue) {
+    // Clue display
+    const disp = el('div', 'clue-display');
+    const wrd = el('span', 'clue-word-big');
+    wrd.style.color = G.turn === 'red' ? '#FF9080' : '#80C0FF';
+    wrd.textContent = G.clue.word;
+    const cnt = el('span', 'clue-count-big');
+    cnt.textContent = G.clue.count === 0 ? '∞' : G.clue.count;
+    disp.appendChild(wrd);
+    disp.appendChild(cnt);
+    area.appendChild(disp);
+
+    // Controls
+    const ctrl = el('div', 'operative-controls');
+    const pill = el('span', 'guesses-pill');
+    const rem  = G.clue.count === 0 ? '∞' : G.guessesLeft;
+    pill.textContent = `Kalan tahmin: ${rem}`;
+    ctrl.appendChild(pill);
+
+    const endBtn = el('button', 'btn');
+    endBtn.textContent = 'Turu Bitir';
+    endBtn.onclick = endTurn;
+    ctrl.appendChild(endBtn);
+    area.appendChild(ctrl);
+    return;
+  }
+
+  if (G.phase === 'spymaster') {
+    if (!G.spymasterView) {
+      const hint = el('div', 'phase-hint');
+      hint.textContent = `Casus görünümünü açarak ${G.turn === 'red' ? 'Kırmızı' : 'Mavi'} ipucunu girebilirsin.`;
+      area.appendChild(hint);
+      return;
+    }
+
+    // Clue input form
+    const form = el('div', 'clue-form');
+
+    const input = el('input', 'clue-input');
+    input.id = 'clue-word-input';
+    input.placeholder = 'İpucu kelimesi…';
+    input.maxLength = 32;
+    input.autocomplete = 'off';
+    form.appendChild(input);
+
+    const sel = el('select', 'clue-count-select');
+    sel.id = 'clue-count-sel';
+    for (let i = 1; i <= 9; i++) {
+      const o = document.createElement('option');
+      o.value = i; o.textContent = i;
+      if (i === 2) o.selected = true;
+      sel.appendChild(o);
+    }
+    const inf = document.createElement('option');
+    inf.value = '0'; inf.textContent = '∞';
+    sel.appendChild(inf);
+    form.appendChild(sel);
+
+    const sub = el('button', `btn btn-${G.turn}`);
+    sub.textContent = 'İpucu Ver';
+    sub.onclick = handleSubmitClue;
+    form.appendChild(sub);
+
+    const help = el('div', 'clue-help');
+    help.textContent = 'Kart kelimelerinden birini veya sözlükte olmayan bir şeyi kullanamazsın.';
+    area.appendChild(form);
+    area.appendChild(help);
+
+    input.onkeydown = e => { if (e.key === 'Enter') handleSubmitClue(); };
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+function handleSubmitClue() {
+  const input = document.getElementById('clue-word-input');
+  const sel   = document.getElementById('clue-count-sel');
+  if (input && sel && input.value.trim()) {
+    submitClue(input.value, sel.value);
+  }
+}
+
+/* ── Log ─────────────────────────────────────────────────────── */
+function renderLog() {
+  const container = document.getElementById('log-entries');
+  container.innerHTML = '';
+  G.log.forEach(entry => {
+    const div = el('div', `log-entry ${entry.type}`);
+    div.textContent = entry.text;
+    container.appendChild(div);
+  });
+}
+
+/* ================================================================
+   UTILITIES
+================================================================ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+/* ================================================================
+   BOOT
+================================================================ */
+newGame();
+</script>
+</body>
+</html>
