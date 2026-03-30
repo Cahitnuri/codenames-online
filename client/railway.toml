@@ -1,8 +1,8 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd .. && npm install && npm run build:client"
+buildCommand = "bash -c 'cd $(git rev-parse --show-toplevel) && npm install && npm run build:client'"
 
 [deploy]
-startCommand = "cd .. && npm run start:client"
+startCommand = "bash -c 'cd $(git rev-parse --show-toplevel) && npm run start:client'"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
