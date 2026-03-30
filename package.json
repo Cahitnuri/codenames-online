@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
-    "start": "npm run start -w server"
+    "start": "npm run start -w server",
+    "build:server": "npm run build -w shared && npm run build -w server",
+    "build:client": "npm run build -w shared && npm run build -w client",
+    "start:server": "node server/dist/index.js",
+    "start:client": "npx --yes serve@14 client/dist -l $PORT -s"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
