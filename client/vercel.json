@@ -3,7 +3,6 @@
   "outputDirectory": "dist",
   "installCommand": "echo skip",
   "framework": null,
-  "functions": {},
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
