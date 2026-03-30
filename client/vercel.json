@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd .. && npm install && npm run build:client",
+  "outputDirectory": "dist",
+  "installCommand": "echo skip",
+  "framework": null,
+  "functions": {},
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
