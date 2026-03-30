@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, useCallback } from 'react';
 import { generateBoard } from '../data/localWords';
 import type { BoardCard } from '../data/localWords';
+import { signUp, signIn, signOut, getSessionProfile } from '../lib/supabase';
 
 // ─── TYPES ────────────────────────────────────────────────────
 export interface Profile {
@@ -319,11 +320,17 @@ function reducer(state: LocalState, action: Action): LocalState {
 // ─── CONTEXT ───────────────────────────────────────────────────
 interface LocalGameContextType {
   state: LocalState;
+  authLoading: boolean;
+  authError: string;
+  // Guest
   loginAsGuest: (name: string, avatarId: string) => void;
-  createAccount: (name: string, avatarId: string) => void;
+  // Supabase auth
+  signUpWithEmail: (email: string, password: string, name: string, avatarId: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  // Local saved profiles (legacy)
   loginProfile: (profile: Profile) => void;
   deleteProfile: (id: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   goToSetup: () => void;
   updateSettings: (s: Partial<GameSettings>) => void;
   startGame: () => void;
@@ -340,21 +347,31 @@ const LocalGameContext = createContext<LocalGameContextType | null>(null);
 
 export function LocalGameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
 
-  // Load localStorage on mount
+  // ── On mount: restore settings + check Supabase session ───────
   useEffect(() => {
-    try {
-      const profiles = JSON.parse(localStorage.getItem('lgProfiles') ?? '[]') as Profile[];
-      const settings = JSON.parse(localStorage.getItem('lgSettings') ?? '{}') as Partial<GameSettings>;
-      dispatch({ type: 'LOAD_STORAGE', profiles, settings });
-    } catch { /* ignore */ }
+    async function init() {
+      try {
+        const settings = JSON.parse(localStorage.getItem('lgSettings') ?? '{}') as Partial<GameSettings>;
+        dispatch({ type: 'LOAD_STORAGE', profiles: [], settings });
+
+        const profile = await getSessionProfile();
+        if (profile) {
+          dispatch({
+            type: 'LOGIN_PROFILE',
+            profile: { id: profile.id, name: profile.name, avatarId: profile.avatarId, isGuest: false },
+          });
+        }
+      } catch { /* ignore */ } finally {
+        setAuthLoading(false);
+      }
+    }
+    void init();
   }, []);
 
-  // Persist savedProfiles + settings
-  useEffect(() => {
-    localStorage.setItem('lgProfiles', JSON.stringify(state.savedProfiles));
-  }, [state.savedProfiles]);
-
+  // Persist settings
   useEffect(() => {
     localStorage.setItem('lgSettings', JSON.stringify(state.settings));
   }, [state.settings]);
@@ -366,13 +383,48 @@ export function LocalGameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [state.timerActive, state.timerRemaining]);
 
+  // ── Auth actions ───────────────────────────────────────────────
+  const signUpWithEmail = useCallback(async (
+    email: string, password: string, name: string, avatarId: string,
+  ) => {
+    setAuthError('');
+    setAuthLoading(true);
+    const result = await signUp(email, password, name, avatarId);
+    setAuthLoading(false);
+    if (result.error || !result.profile) { setAuthError(result.error ?? 'Hata'); return; }
+    dispatch({
+      type: 'LOGIN_PROFILE',
+      profile: { id: result.profile.id, name, avatarId, isGuest: false },
+    });
+  }, []);
+
+  const signInWithEmail = useCallback(async (email: string, password: string) => {
+    setAuthError('');
+    setAuthLoading(true);
+    const result = await signIn(email, password);
+    setAuthLoading(false);
+    if (result.error || !result.profile) { setAuthError(result.error ?? 'Hata'); return; }
+    dispatch({
+      type: 'LOGIN_PROFILE',
+      profile: { id: result.profile.id, name: result.profile.name, avatarId: result.profile.avatarId, isGuest: false },
+    });
+  }, []);
+
+  const logout = useCallback(async () => {
+    await signOut();
+    dispatch({ type: 'LOGOUT' });
+  }, []);
+
   const ctx: LocalGameContextType = {
     state,
+    authLoading,
+    authError,
     loginAsGuest: (name, avatarId) => dispatch({ type: 'LOGIN_GUEST', name, avatarId }),
-    createAccount: (name, avatarId) => dispatch({ type: 'CREATE_PROFILE', name, avatarId }),
+    signUpWithEmail,
+    signInWithEmail,
     loginProfile: (profile) => dispatch({ type: 'LOGIN_PROFILE', profile }),
     deleteProfile: (id) => dispatch({ type: 'DELETE_PROFILE', id }),
-    logout: () => dispatch({ type: 'LOGOUT' }),
+    logout,
     goToSetup: () => dispatch({ type: 'GO_SETUP' }),
     updateSettings: (s) => dispatch({ type: 'UPDATE_SETTINGS', settings: s }),
     startGame: () => dispatch({ type: 'NEW_GAME' }),
