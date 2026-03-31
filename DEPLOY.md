@@ -27,13 +27,13 @@ Open two browser tabs, create a room, join from the second tab.
    PORT=3001
    CORS_ORIGIN=https://your-app.vercel.app
    ```
-5. Railway auto-detects Node.js. Set start command: `npm start`
+5. Railway uses `railway.toml` automatically — no manual start command needed
 6. Copy the generated Railway URL (e.g. `https://codenames-server.up.railway.app`)
 
 ### 2. Deploy Client to Vercel
 
 1. Go to https://vercel.com → New Project → Import from GitHub
-2. Set **Root Directory** to `/client`
+2. Keep **Root Directory** as repo root (not `/client`) — `vercel.json` at root handles everything
 3. Add environment variable:
    ```
    VITE_SERVER_URL=https://codenames-server.up.railway.app
