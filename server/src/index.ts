@@ -4,7 +4,7 @@ import cors from 'cors';
 import { createSocketServer } from './socket/socket.server';
 
 const PORT = process.env['PORT'] ?? 3001;
-const CORS_ORIGIN = process.env['CORS_ORIGIN'] ?? 'http://localhost:5173';
+const CORS_ORIGIN = (process.env['CORS_ORIGIN'] ?? 'http://localhost:5173').replace(/\/$/, '');
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));
