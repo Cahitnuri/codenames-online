@@ -19,16 +19,18 @@ export default function LobbyPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    socket.on('connect', () => setMyPlayerId(socket.id ?? ''));
-    if (socket.connected) setMyPlayerId(socket.id ?? '');
-    return () => { socket.off('connect'); };
-  }, [setMyPlayerId]);
-
-  useEffect(() => {
-    if (!roomId) return;
-    if (displayName && !joined && socket.connected) joinRoom(displayName);
+    const handleConnect = () => {
+      setMyPlayerId(socket.id ?? '');
+      if (roomId && displayName && !joined) joinRoom(displayName);
+    };
+    socket.on('connect', handleConnect);
+    if (socket.connected) {
+      setMyPlayerId(socket.id ?? '');
+      if (roomId && displayName && !joined) joinRoom(displayName);
+    }
+    return () => { socket.off('connect', handleConnect); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket.connected, roomId]);
+  }, [setMyPlayerId, roomId]);
 
   useEffect(() => {
     if (game?.phase === 'spymaster-turn' || game?.phase === 'operative-turn') {
@@ -82,7 +84,17 @@ export default function LobbyPage() {
           <button onClick={() => joinRoom(nameInput)} className="btn-blue w-full py-3.5 font-semibold text-base">
             Odaya Gir
           </button>
-          {error && <p className="text-red-400 text-sm text-center font-body">{error}</p>}
+          {error && (
+            <div className="space-y-3">
+              <p className="text-red-400 text-sm text-center font-body">{error}</p>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-2.5 font-body text-sm text-slate-400 border border-ink-500 rounded-xl hover:border-slate-400 hover:text-white transition-all"
+              >
+                ← Ana Sayfaya Dön
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
