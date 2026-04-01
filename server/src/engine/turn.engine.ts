@@ -12,19 +12,21 @@ function countWordsRemaining(cards: Card[], team: Team): number {
 }
 
 export function applyClue(state: GameState, clue: Clue): GameState {
+  const spymaster = state.players.find(p => p.id === clue.givenBy);
   return {
     ...state,
     activeClue: clue,
     guessesThisTurn: 0,
     maxGuessesThisTurn: clue.number === 0 ? 99 : clue.number + 1,
     phase: 'operative-turn',
+    pendingSelections: {},
     log: [
       ...state.log,
       {
         timestamp: Date.now(),
         type: 'clue',
         team: state.currentTurn,
-        payload: { word: clue.word, number: clue.number, isBluff: clue.isBluff },
+        payload: { word: clue.word, number: clue.number, isBluff: clue.isBluff, givenBy: clue.givenBy, givenByName: spymaster?.displayName ?? '?' },
       },
     ],
   };
@@ -39,10 +41,20 @@ export interface GuessResult {
   combo: number;
 }
 
-export function applyGuess(state: GameState, cardId: number): GuessResult {
+export function applyGuess(state: GameState, cardId: number, guessedById: string): GuessResult {
   const card = state.cards.find(c => c.id === cardId);
   if (!card || card.revealed || card.sabotaged) {
     return { newState: state, correct: false, assassin: false, turnContinues: false, scoreGained: 0, combo: 0 };
+  }
+
+  const guessingPlayer = state.players.find(p => p.id === guessedById);
+  const guessedByName = guessingPlayer?.displayName ?? '?';
+
+  const newPendingSelections: Record<number, string[]> = {};
+  for (const [key, value] of Object.entries(state.pendingSelections ?? {})) {
+    if (Number(key) !== cardId) {
+      newPendingSelections[Number(key)] = value as string[];
+    }
   }
 
   const guessingTeam = state.currentTurn;
@@ -107,8 +119,10 @@ export function applyGuess(state: GameState, cardId: number): GuessResult {
         winner,
         winReason: 'assassin',
         bluffActive: false,
+        pendingSelections: {},
         log: [
           ...state.log,
+          { timestamp: Date.now(), type: 'guess', team: guessingTeam, payload: { cardId, word: card.word, correct: false, owner: card.owner, scoreGained, combo: newCombo, guessedByName } },
           { timestamp: Date.now(), type: 'game-end', team: guessingTeam, payload: { reason: 'assassin', winner } },
         ],
       },
@@ -133,8 +147,10 @@ export function applyGuess(state: GameState, cardId: number): GuessResult {
         winner,
         winReason: 'all-words',
         bluffActive: false,
+        pendingSelections: {},
         log: [
           ...state.log,
+          { timestamp: Date.now(), type: 'guess', team: guessingTeam, payload: { cardId, word: card.word, correct: true, owner: card.owner, scoreGained, combo: newCombo, guessedByName } },
           { timestamp: Date.now(), type: 'game-end', team: guessingTeam, payload: { reason: 'all-words', winner } },
         ],
       },
@@ -154,13 +170,14 @@ export function applyGuess(state: GameState, cardId: number): GuessResult {
     teams: newTeams,
     guessesThisTurn: newGuessesThisTurn,
     bluffActive: bluffResult.triggered ? false : state.bluffActive,
+    pendingSelections: newPendingSelections,
     log: [
       ...state.log,
       {
         timestamp: Date.now(),
         type: 'guess',
         team: guessingTeam,
-        payload: { cardId, word: card.word, correct, owner: card.owner, scoreGained, combo: newCombo },
+        payload: { cardId, word: card.word, correct, owner: card.owner, scoreGained, combo: newCombo, guessedByName },
       },
     ],
   };
@@ -213,6 +230,7 @@ export function applyEndTurn(state: GameState, reason: string): GameState {
     bluffActive: false,
     phase: 'spymaster-turn',
     turnNumber: state.turnNumber + 1,
+    pendingSelections: {},
     log: [
       ...state.log,
       {
@@ -265,5 +283,6 @@ export function initGameState(roomId: string, firstTeam: Team, cards: Card[], pl
     winner: null,
     winReason: null,
     log: [],
+    pendingSelections: {},
   };
 }

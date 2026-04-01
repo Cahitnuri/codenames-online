@@ -102,7 +102,7 @@ export function registerGameHandlers(
       return;
     }
 
-    const result = applyGuess(game, cardId);
+    const result = applyGuess(game, cardId, socket.id);
     roomManager.updateGameState(room.roomId, result.newState);
 
     io.to(room.roomId).emit('game:guess-result', {
@@ -179,6 +179,48 @@ export function registerGameHandlers(
     startSpymasterTimer(io, room.roomId);
   });
 
+  socket.on('game:set-settings', ({ spymasterMs, operativeMs }) => {
+    const room = roomManager.getRoomByPlayer(socket.id);
+    if (!room) return;
+    if (room.hostId !== socket.id) return;
+    const clamped = {
+      spymasterMs: Math.min(Math.max(spymasterMs, 10_000), 300_000),
+      operativeMs: Math.min(Math.max(operativeMs, 10_000), 600_000),
+    };
+    roomManager.setTimerConfig(room.roomId, clamped);
+  });
+
+  socket.on('game:indicate-word', ({ cardId }) => {
+    const room = roomManager.getRoomByPlayer(socket.id);
+    if (!room) return;
+
+    const { game } = room;
+    if (game.phase !== 'operative-turn') return;
+
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player || player.team !== game.currentTurn || player.role !== 'operative') return;
+
+    const newSelections: Record<number, string[]> = {};
+    for (const [cIdStr, playerIds] of Object.entries(game.pendingSelections ?? {})) {
+      const cId = Number(cIdStr);
+      const filtered = (playerIds as string[]).filter((pid: string) => pid !== socket.id);
+      if (filtered.length > 0) {
+        newSelections[cId] = filtered;
+      }
+    }
+
+    if (cardId !== null) {
+      const existingForCard = (game.pendingSelections ?? {})[cardId] ?? [];
+      const alreadyIndicated = (existingForCard as string[]).includes(socket.id);
+      if (!alreadyIndicated) {
+        newSelections[cardId] = [...(newSelections[cardId] ?? []), socket.id];
+      }
+    }
+
+    game.pendingSelections = newSelections;
+    io.to(room.roomId).emit('game:indications-update', newSelections);
+  });
+
   socket.on('game:rematch', () => {
     const room = roomManager.getRoomByPlayer(socket.id);
     if (!room) return;
@@ -196,10 +238,10 @@ export function registerGameHandlers(
 }
 
 function startSpymasterTimer(io: Server<C2S_Events, S2C_Events>, roomId: string): void {
-  const timer = createTimer('spymaster');
-
   const room = roomManager.getRoom(roomId);
   if (!room) return;
+  const duration = room.timerConfig?.spymasterMs ?? SPYMASTER_TIMER_MS;
+  const timer = createTimer('spymaster', duration);
   room.game.timer = timer;
 
   timerManager.startTimer(
@@ -215,7 +257,6 @@ function startSpymasterTimer(io: Server<C2S_Events, S2C_Events>, roomId: string)
       const r = roomManager.getRoom(roomId);
       if (!r || r.game.phase !== 'spymaster-turn') return;
 
-      // Auto-pass: give a null clue / end spymaster timer → force end turn without clue
       io.to(roomId).emit('game:timer-expired', { phase: 'spymaster' });
       const newState = applyEndTurn(r.game, 'timer');
       roomManager.updateGameState(roomId, newState);
@@ -225,17 +266,18 @@ function startSpymasterTimer(io: Server<C2S_Events, S2C_Events>, roomId: string)
         nextTurn: newState.currentTurn,
         scoreSnapshot: { red: newState.teams.red.score, blue: newState.teams.blue.score },
       });
+      io.to(roomId).emit('game:indications-update', {});
       startSpymasterTimer(io, roomId);
     },
-    SPYMASTER_TIMER_MS,
+    duration,
   );
 }
 
 function startOperativeTimer(io: Server<C2S_Events, S2C_Events>, roomId: string): void {
-  const timer = createTimer('operative');
-
   const room = roomManager.getRoom(roomId);
   if (!room) return;
+  const duration = room.timerConfig?.operativeMs ?? OPERATIVE_TIMER_MS;
+  const timer = createTimer('operative', duration);
   room.game.timer = timer;
 
   timerManager.startTimer(
@@ -260,8 +302,9 @@ function startOperativeTimer(io: Server<C2S_Events, S2C_Events>, roomId: string)
         scoreSnapshot: { red: newState.teams.red.score, blue: newState.teams.blue.score },
       });
       io.to(roomId).emit('game:phase-change', { phase: newState.phase, currentTurn: newState.currentTurn });
+      io.to(roomId).emit('game:indications-update', {});
       startSpymasterTimer(io, roomId);
     },
-    OPERATIVE_TIMER_MS,
+    duration,
   );
 }

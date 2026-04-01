@@ -1,8 +1,8 @@
 import type { TimerState } from '@codenames/shared';
 import { SPYMASTER_TIMER_MS, OPERATIVE_TIMER_MS } from '@codenames/shared';
 
-export function createTimer(phase: 'spymaster' | 'operative'): TimerState {
-  const duration = phase === 'spymaster' ? SPYMASTER_TIMER_MS : OPERATIVE_TIMER_MS;
+export function createTimer(phase: 'spymaster' | 'operative', durationMs?: number): TimerState {
+  const duration = durationMs ?? (phase === 'spymaster' ? SPYMASTER_TIMER_MS : OPERATIVE_TIMER_MS);
   return {
     phase,
     startedAt: Date.now(),

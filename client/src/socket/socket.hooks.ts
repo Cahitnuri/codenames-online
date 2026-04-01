@@ -4,6 +4,7 @@ import { socket } from './socket.client';
 import { useGameStore } from '../store/game.store';
 import { usePlayerStore } from '../store/player.store';
 import { useUIStore } from '../store/ui.store';
+export { usePlayerStore };
 
 export function useSocketSync() {
   const store = useGameStore();
@@ -95,6 +96,10 @@ export function useSocketSync() {
       addToast({ message: `BLUFF triggered! ${team.toUpperCase()} gets +${points} points!`, type: 'success' });
     });
 
+    socket.on('game:indications-update', (selections) => {
+      store.applyIndicationsUpdate(selections);
+    });
+
     socket.on('error', ({ message }) => {
       addToast({ message, type: 'error' });
     });
@@ -109,8 +114,9 @@ export function useSocketSync() {
   useEffect(() => {
     socket.on('connect', () => {
       const roomId = store.roomId;
+      const { avatar } = usePlayerStore.getState();
       if (roomId && displayName) {
-        socket.emit('room:reconnect', { roomId, displayName }, (res) => {
+        socket.emit('room:reconnect', { roomId, displayName, avatar }, (res) => {
           if (res.ok && res.state) {
             store.setFullState(res.state);
           }
@@ -129,6 +135,8 @@ export function useGameActions() {
   return {
     giveClue: (word: string, number: number) => socket.emit('game:give-clue', { word, number }),
     guessWord: (cardId: number) => socket.emit('game:guess-word', { cardId }),
+    indicateWord: (cardId: number | null) => socket.emit('game:indicate-word', { cardId }),
+    setAvatar: (avatar: string) => socket.emit('player:set-avatar', { avatar }),
     endTurn: () => socket.emit('game:end-turn'),
     useBluff: () => socket.emit('ability:use-bluff'),
     useSabotage: (cardId: number) => socket.emit('ability:use-sabotage', { cardId }),

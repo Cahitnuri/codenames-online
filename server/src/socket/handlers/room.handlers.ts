@@ -7,29 +7,26 @@ export function registerRoomHandlers(
   io: Server<C2S_Events, S2C_Events>,
   socket: Socket<C2S_Events, S2C_Events>,
 ): void {
-  socket.on('room:create', ({ displayName }, ack) => {
+  socket.on('room:create', ({ displayName, avatar }, ack) => {
     const name = displayName.trim().slice(0, 20) || 'Player';
-    const room = roomManager.createRoom(socket.id, name);
+    const room = roomManager.createRoom(socket.id, name, avatar);
     socket.join(room.roomId);
     ack({ ok: true, roomId: room.roomId });
   });
 
-  socket.on('room:join', ({ roomId, displayName }, ack) => {
+  socket.on('room:join', ({ roomId, displayName, avatar }, ack) => {
     const room = roomManager.getRoom(roomId.toUpperCase());
     if (!room) {
       ack({ ok: false, error: 'Room not found' });
       return;
     }
-    if (room.game.phase !== 'lobby' && room.game.phase !== 'team-selection' && room.game.phase !== 'spymaster-assignment') {
-      // Allow spectators to join mid-game too
-    }
 
     const name = displayName.trim().slice(0, 20) || 'Player';
     const existing = room.game.players.find(p => p.displayName === name && !p.connected);
     if (existing) {
-      // Reconnect path
       const player = roomManager.reconnectPlayer(roomId.toUpperCase(), name, socket.id);
       if (player) {
+        if (avatar) player.avatar = avatar;
         socket.join(roomId.toUpperCase());
         socket.to(roomId.toUpperCase()).emit('player:reconnected', player);
         ack({ ok: true, state: roomManager.getRoom(roomId.toUpperCase())!.game });
@@ -43,6 +40,7 @@ export function registerRoomHandlers(
       team: 'spectator' as const,
       role: null,
       connected: true,
+      avatar: avatar ?? '',
     };
     roomManager.addPlayer(roomId.toUpperCase(), player);
     socket.join(roomId.toUpperCase());
@@ -50,15 +48,25 @@ export function registerRoomHandlers(
     ack({ ok: true, state: roomManager.getRoom(roomId.toUpperCase())!.game });
   });
 
-  socket.on('room:reconnect', ({ roomId, displayName }, ack) => {
+  socket.on('room:reconnect', ({ roomId, displayName, avatar }, ack) => {
     const player = roomManager.reconnectPlayer(roomId.toUpperCase(), displayName, socket.id);
     if (!player) {
       ack({ ok: false, error: 'Could not reconnect' });
       return;
     }
+    if (avatar) player.avatar = avatar;
     socket.join(roomId.toUpperCase());
     socket.to(roomId.toUpperCase()).emit('player:reconnected', player);
     ack({ ok: true, state: roomManager.getRoom(roomId.toUpperCase())!.game });
+  });
+
+  socket.on('player:set-avatar', ({ avatar }) => {
+    const room = roomManager.getRoomByPlayer(socket.id);
+    if (!room) return;
+    const player = room.game.players.find(p => p.id === socket.id);
+    if (!player) return;
+    player.avatar = avatar;
+    io.to(room.roomId).emit('player:state-update', player);
   });
 
   socket.on('room:leave', () => {

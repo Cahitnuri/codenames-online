@@ -5,18 +5,21 @@ import { useGameStore } from '../store/game.store';
 import { usePlayerStore } from '../store/player.store';
 import { useGameActions } from '../socket/socket.hooks';
 import type { Team, Player } from '@codenames/shared';
+import { Avatars, AvatarList, AvatarDisplay } from '../components/ui/Avatars';
 
 export default function LobbyPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { game, myPlayerId, setFullState, setMyPlayerId } = useGameStore();
-  const { displayName, setDisplayName } = usePlayerStore();
+  const { displayName, setDisplayName, avatar, setAvatar } = usePlayerStore();
   const actions = useGameActions();
 
   const [nameInput, setNameInput] = useState(displayName);
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [spymasterSec, setSpymasterSec] = useState(30);
+  const [operativeSec, setOperativeSec] = useState(60);
 
   useEffect(() => {
     const handleConnect = () => {
@@ -41,7 +44,7 @@ export default function LobbyPage() {
   function joinRoom(name: string) {
     if (!roomId || !name.trim()) return;
     setDisplayName(name.trim());
-    socket.emit('room:join', { roomId: roomId.toUpperCase(), displayName: name.trim() }, (res) => {
+    socket.emit('room:join', { roomId: roomId.toUpperCase(), displayName: name.trim(), avatar }, (res) => {
       if (res.ok && res.state) { setFullState(res.state); setJoined(true); }
       else setError(res.error ?? 'Failed to join');
     });
@@ -81,6 +84,33 @@ export default function LobbyPage() {
             className="input-dark w-full font-body text-base"
             autoFocus
           />
+          {/* Avatar picker */}
+          <div>
+            <p className="font-mono-code text-xs text-slate-500 tracking-widest mb-2">AVATAR SEÇ</p>
+            <div className="grid grid-cols-8 gap-1.5">
+              {AvatarList.map(name => {
+                const AvatarComp = Avatars[name]!;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setAvatar(name)}
+                    className="rounded-lg overflow-hidden transition-all duration-150"
+                    style={{
+                      outline: avatar === name ? '2px solid #F59E0B' : '2px solid transparent',
+                      outlineOffset: '1px',
+                      background: avatar === name ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                    }}
+                    title={name}
+                  >
+                    <div className="w-8 h-8 p-0.5">
+                      <AvatarComp />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <button onClick={() => joinRoom(nameInput)} className="btn-blue w-full py-3.5 font-semibold text-base">
             Odaya Gir
           </button>
@@ -165,6 +195,53 @@ export default function LobbyPage() {
             <Req met={bluePlayers.some(p => p.role === 'spymaster')} label="Mavi istihbarat atandı" />
           </div>
         </div>
+
+        {/* Timer settings — host only */}
+        {isHost && (
+          <div className="glass-panel rounded-xl p-5 mb-6">
+            <p className="font-mono-code text-xs text-slate-500 tracking-widest mb-4">SÜRE AYARLARI</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-mono-code text-xs text-slate-400 tracking-wider block mb-2">
+                  İSTİHBARAT SÜRESİ
+                  <span className="ml-2 text-amber-400">{spymasterSec}s</span>
+                </label>
+                <input
+                  type="range" min={10} max={120} step={5}
+                  value={spymasterSec}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    setSpymasterSec(val);
+                    socket.emit('game:set-settings', { spymasterMs: val * 1000, operativeMs: operativeSec * 1000 });
+                  }}
+                  className="w-full accent-amber-500"
+                />
+                <div className="flex justify-between font-mono-code text-xs text-slate-600 mt-1">
+                  <span>10s</span><span>120s</span>
+                </div>
+              </div>
+              <div>
+                <label className="font-mono-code text-xs text-slate-400 tracking-wider block mb-2">
+                  AJAN SÜRESİ
+                  <span className="ml-2 text-amber-400">{operativeSec}s</span>
+                </label>
+                <input
+                  type="range" min={15} max={180} step={5}
+                  value={operativeSec}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    setOperativeSec(val);
+                    socket.emit('game:set-settings', { spymasterMs: spymasterSec * 1000, operativeMs: val * 1000 });
+                  }}
+                  className="w-full accent-amber-500"
+                />
+                <div className="flex justify-between font-mono-code text-xs text-slate-600 mt-1">
+                  <span>15s</span><span>180s</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Start */}
         {isHost ? (

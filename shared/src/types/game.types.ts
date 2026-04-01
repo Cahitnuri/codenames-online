@@ -26,6 +26,7 @@ export interface Player {
   team: Team | 'spectator';
   role: PlayerRole | null;
   connected: boolean;
+  avatar?: string;
 }
 
 export interface Clue {
@@ -77,4 +78,5 @@ export interface GameState {
   winner: Team | null;
   winReason: 'all-words' | 'assassin' | null;
   log: GameLogEntry[];
+  pendingSelections: Record<number, string[]>;
 }

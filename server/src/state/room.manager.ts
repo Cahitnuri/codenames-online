@@ -1,5 +1,5 @@
 import type { GameState, Player } from '@codenames/shared';
-import { ROOM_IDLE_TIMEOUT_MS } from '@codenames/shared';
+import { ROOM_IDLE_TIMEOUT_MS, SPYMASTER_TIMER_MS, OPERATIVE_TIMER_MS } from '@codenames/shared';
 
 export interface RoomState {
   roomId: string;
@@ -7,6 +7,7 @@ export interface RoomState {
   createdAt: number;
   lastActivity: number;
   game: GameState;
+  timerConfig: { spymasterMs: number; operativeMs: number };
 }
 
 function generateRoomId(): string {
@@ -22,7 +23,7 @@ class RoomManager {
   private rooms = new Map<string, RoomState>();
   private playerRoomIndex = new Map<string, string>(); // socketId → roomId
 
-  createRoom(hostSocketId: string, hostDisplayName: string): RoomState {
+  createRoom(hostSocketId: string, hostDisplayName: string, hostAvatar?: string): RoomState {
     let roomId = generateRoomId();
     while (this.rooms.has(roomId)) {
       roomId = generateRoomId();
@@ -34,6 +35,7 @@ class RoomManager {
       team: 'spectator',
       role: null,
       connected: true,
+      avatar: hostAvatar ?? '',
     };
 
     const room: RoomState = {
@@ -41,6 +43,7 @@ class RoomManager {
       hostId: hostSocketId,
       createdAt: Date.now(),
       lastActivity: Date.now(),
+      timerConfig: { spymasterMs: SPYMASTER_TIMER_MS, operativeMs: OPERATIVE_TIMER_MS },
       game: {
         roomId,
         phase: 'lobby',
@@ -61,6 +64,7 @@ class RoomManager {
         winner: null,
         winReason: null,
         log: [],
+        pendingSelections: {},
       },
     };
 
@@ -136,6 +140,13 @@ class RoomManager {
     }
 
     return player;
+  }
+
+  setTimerConfig(roomId: string, config: { spymasterMs: number; operativeMs: number }): void {
+    const room = this.rooms.get(roomId);
+    if (room) {
+      room.timerConfig = config;
+    }
   }
 
   updateGameState(roomId: string, newState: GameState): void {

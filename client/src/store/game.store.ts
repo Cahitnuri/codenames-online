@@ -30,6 +30,7 @@ interface GameStore {
   applyPlayerJoined: (player: Player) => void;
   applyPlayerLeft: (playerId: string) => void;
   applyBluffActivated: (team: Team, active: boolean) => void;
+  applyIndicationsUpdate: (selections: Record<number, string[]>) => void;
   setGameOver: (payload: GameOverPayload) => void;
   clearGameOver: () => void;
 }
@@ -137,6 +138,10 @@ export const useGameStore = create<GameStore>()(
       if (!s.game) return;
       s.game.bluffActive = active;
       s.game.bluffTeam = active ? team : null;
+    }),
+
+    applyIndicationsUpdate: (selections) => set(s => {
+      if (s.game) s.game.pendingSelections = selections;
     }),
 
     setGameOver: (payload) => set(s => {

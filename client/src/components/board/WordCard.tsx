@@ -1,70 +1,72 @@
 import { useState, useEffect } from 'react';
 import type { Card } from '@codenames/shared';
 import { cn } from '../../utils/cn';
+import CardIllustration from './CardIllustrations';
 
 interface WordCardProps {
   card: Card;
   isSpymaster: boolean;
   canClick: boolean;
-  sabotageMode: boolean;
   onClick: () => void;
+  indicatingInitials: string[];
+  isMyIndication: boolean;
 }
 
-// Revealed card styles
-const REVEALED_STYLES: Record<string, { bg: string; text: string; border: string }> = {
+const REVEALED_STYLES: Record<string, { bg: string; text: string; border: string; shadow: string }> = {
   red: {
-    bg: 'linear-gradient(135deg, #991B1B 0%, #DC2626 100%)',
-    text: '#FFFFFF',
-    border: 'rgba(220,38,38,0.6)',
+    bg: 'linear-gradient(135deg, #c46040 0%, #d97b56 100%)',
+    text: '#fff',
+    border: '#c46040',
+    shadow: '0 4px 14px rgba(217,123,86,0.4)',
   },
   blue: {
-    bg: 'linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)',
-    text: '#FFFFFF',
-    border: 'rgba(37,99,235,0.6)',
+    bg: 'linear-gradient(135deg, #3d6b8a 0%, #5a87a8 100%)',
+    text: '#fff',
+    border: '#3d6b8a',
+    shadow: '0 4px 14px rgba(90,135,168,0.4)',
   },
   neutral: {
-    bg: 'linear-gradient(135deg, #78350F 0%, #92400E 100%)',
-    text: '#FDE68A',
-    border: 'rgba(146,64,14,0.6)',
+    bg: 'linear-gradient(135deg, #7a5c3a 0%, #9a7350 100%)',
+    text: '#f5e8d0',
+    border: '#7a5c3a',
+    shadow: '0 2px 8px rgba(0,0,0,0.25)',
   },
   assassin: {
-    bg: 'linear-gradient(135deg, #030712 0%, #0A0A0F 100%)',
-    text: '#9CA3AF',
-    border: 'rgba(75,85,99,0.5)',
+    bg: 'linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%)',
+    text: '#9ca3af',
+    border: '#444',
+    shadow: '0 4px 14px rgba(0,0,0,0.6)',
   },
-};
-
-// Spymaster hint border colors for unrevealed cards
-const SPY_HINT_COLORS: Record<string, string> = {
-  red: 'rgba(220,38,38,0.7)',
-  blue: 'rgba(37,99,235,0.7)',
-  neutral: 'rgba(146,64,14,0.6)',
-  assassin: 'rgba(107,114,128,0.6)',
 };
 
 const SPY_HINT_BG: Record<string, string> = {
-  red: 'rgba(127,29,29,0.2)',
-  blue: 'rgba(29,78,216,0.2)',
-  neutral: 'rgba(120,53,15,0.15)',
-  assassin: 'rgba(17,24,39,0.4)',
+  red: 'rgba(217,123,86,0.22)',
+  blue: 'rgba(90,135,168,0.22)',
+  neutral: 'rgba(154,115,80,0.2)',
+  assassin: 'rgba(30,30,30,0.4)',
 };
 
-export default function WordCard({ card, isSpymaster, canClick, sabotageMode, onClick }: WordCardProps) {
+const SPY_HINT_BORDER: Record<string, string> = {
+  red: '#d97b5680',
+  blue: '#5a87a880',
+  neutral: '#9a735060',
+  assassin: '#55555580',
+};
+
+export default function WordCard({ card, isSpymaster, canClick, onClick, indicatingInitials, isMyIndication }: WordCardProps) {
   const [animating, setAnimating] = useState(false);
   const [wasRevealed, setWasRevealed] = useState(card.revealed);
 
   useEffect(() => {
     if (card.revealed && !wasRevealed) {
       setAnimating(true);
-      const t = setTimeout(() => setAnimating(false), 550);
+      const t = setTimeout(() => setAnimating(false), 500);
       setWasRevealed(true);
       return () => clearTimeout(t);
     }
   }, [card.revealed, wasRevealed]);
 
-  const isClickable = canClick && !card.revealed && !card.sabotaged;
-
-  // Build inline styles for revealed vs unrevealed
+  const isClickable = canClick && !card.revealed;
   const revealedStyle = REVEALED_STYLES[card.owner];
 
   let cardStyle: React.CSSProperties = {};
@@ -72,28 +74,36 @@ export default function WordCard({ card, isSpymaster, canClick, sabotageMode, on
 
   if (card.revealed && revealedStyle) {
     cardStyle = {
-      background: revealedStyle.bg,
-      color: revealedStyle.text,
       borderColor: revealedStyle.border,
-      boxShadow: card.owner === 'red'
-        ? '0 4px 16px rgba(220,38,38,0.3)'
-        : card.owner === 'blue'
-          ? '0 4px 16px rgba(37,99,235,0.3)'
-          : card.owner === 'assassin'
-            ? '0 4px 16px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.5)'
-            : '0 2px 8px rgba(0,0,0,0.3)',
+      boxShadow: revealedStyle.shadow,
+      background: 'transparent',
+      color: '#fff',
     };
-    cardClassName = 'word-card border opacity-90';
+    cardClassName = 'word-card border opacity-95 overflow-hidden';
   } else if (isSpymaster && !card.revealed) {
     cardStyle = {
-      backgroundColor: SPY_HINT_BG[card.owner] ?? 'rgba(30,30,50,0.5)',
-      borderColor: SPY_HINT_COLORS[card.owner] ?? 'rgba(255,255,255,0.1)',
-      color: '#E2E8F0',
+      backgroundColor: SPY_HINT_BG[card.owner] ?? 'rgba(239,230,214,0.6)',
+      borderColor: SPY_HINT_BORDER[card.owner] ?? '#d6c7b280',
+      color: '#2d1f14',
     };
     cardClassName = 'word-card border-2';
   } else {
     cardClassName = 'word-card-unknown';
     cardStyle = {};
+  }
+
+  if (isMyIndication && !card.revealed) {
+    cardStyle = {
+      ...cardStyle,
+      outline: '2px solid #f59e0b',
+      outlineOffset: '2px',
+    };
+  } else if (indicatingInitials.length > 0 && !card.revealed) {
+    cardStyle = {
+      ...cardStyle,
+      outline: '1px solid rgba(245,158,11,0.5)',
+      outlineOffset: '2px',
+    };
   }
 
   return (
@@ -102,53 +112,68 @@ export default function WordCard({ card, isSpymaster, canClick, sabotageMode, on
       disabled={!isClickable}
       className={cn(
         cardClassName,
-        'font-mono-code transition-all duration-200 select-none relative overflow-hidden',
-        isClickable && !sabotageMode && 'cursor-pointer',
-        isClickable && sabotageMode && 'cursor-crosshair',
+        'transition-all select-none relative overflow-hidden',
+        isClickable && 'cursor-pointer',
         !isClickable && 'cursor-default',
         animating && 'animate-flip-card',
-        // hover effects only for clickable unrevealed cards
-        isClickable && !sabotageMode && !card.revealed && 'hover:-translate-y-1.5 hover:shadow-card-hover',
-        isClickable && sabotageMode && !card.revealed && 'hover:brightness-75',
-        card.sabotaged && 'opacity-40',
       )}
       style={cardStyle}
     >
-      {/* Word text */}
-      <span className="relative z-10 px-1 leading-tight break-all text-center"
-        style={{ fontSize: 'clamp(7px, 1vw, 12px)', fontWeight: 700, letterSpacing: '0.1em' }}>
-        {card.word}
-      </span>
-
-      {/* Assassin skull overlay */}
-      {card.revealed && card.owner === 'assassin' && (
-        <div className="absolute inset-0 flex items-end justify-end p-1 pointer-events-none">
-          <span className="text-gray-700 text-xs">☠</span>
+      {/* Card illustration (revealed) */}
+      {card.revealed && (
+        <div className="absolute inset-0 z-0">
+          <CardIllustration cardId={card.id} />
         </div>
       )}
 
-      {/* Spymaster color indicator dot */}
+      {/* Revealed word band at bottom */}
+      {card.revealed && (
+        <div
+          className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center py-1 px-1"
+          style={{ background: revealedStyle ? `${revealedStyle.border}e6` : 'rgba(0,0,0,0.75)' }}
+        >
+          <span style={{ fontSize: 'clamp(7px, 0.9vw, 11px)', fontWeight: 800, letterSpacing: '0.06em', color: '#fff' }}>
+            {card.word}
+          </span>
+        </div>
+      )}
+
+      {/* Indicating players' initials */}
+      {indicatingInitials.length > 0 && !card.revealed && (
+        <div className="absolute top-1 left-1 flex gap-0.5 z-10 pointer-events-none">
+          {indicatingInitials.slice(0, 4).map((initial, i) => (
+            <span
+              key={i}
+              className="text-[9px] font-bold leading-none px-1 py-0.5 rounded"
+              style={{
+                background: isMyIndication && i === indicatingInitials.indexOf(indicatingInitials.find((_, idx) => idx === 0) ?? '') ? 'rgba(245,158,11,0.85)' : 'rgba(0,0,0,0.55)',
+                color: '#fff',
+              }}
+            >
+              {initial}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!card.revealed && (
+        <span
+          className="relative z-10 px-1 leading-tight break-all text-center"
+          style={{ fontSize: 'clamp(9px, 1.1vw, 13px)', fontWeight: 800, letterSpacing: '0.08em' }}
+        >
+          {card.word}
+        </span>
+      )}
+
+
       {isSpymaster && !card.revealed && (
         <span className={cn(
-          'absolute bottom-1 right-1 w-2 h-2 rounded-full border border-black/20',
-          card.owner === 'red' && 'bg-red-500',
-          card.owner === 'blue' && 'bg-blue-500',
+          'absolute bottom-1 right-1 w-2 h-2 rounded-full border border-black/10',
+          card.owner === 'red' && 'bg-card-red',
+          card.owner === 'blue' && 'bg-card-blue',
           card.owner === 'neutral' && 'bg-amber-600',
-          card.owner === 'assassin' && 'bg-gray-500',
+          card.owner === 'assassin' && 'bg-gray-600',
         )} />
-      )}
-
-      {/* Sabotaged overlay */}
-      {card.sabotaged && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-orange-950/60 z-20">
-          <span className="text-orange-400 text-base">⊘</span>
-        </div>
-      )}
-
-      {/* Hover shimmer for unrevealed clickable */}
-      {isClickable && !sabotageMode && !card.revealed && (
-        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none rounded-xl"
-          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%)' }} />
       )}
     </button>
   );

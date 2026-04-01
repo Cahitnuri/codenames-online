@@ -8,15 +8,12 @@ interface Toast {
 
 interface UIStore {
   toasts: Toast[];
-  sabotageMode: boolean;
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
-  setSabotageMode: (active: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>((set) => ({
   toasts: [],
-  sabotageMode: false,
 
   addToast: ({ message, type }) => {
     const id = Math.random().toString(36).slice(2);
@@ -27,6 +24,4 @@ export const useUIStore = create<UIStore>((set) => ({
   },
 
   removeToast: (id) => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
-
-  setSabotageMode: (active) => set({ sabotageMode: active }),
 }));

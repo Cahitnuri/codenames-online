@@ -64,7 +64,7 @@ export default function GamePage() {
         {/* Center */}
         <div className="flex-1 flex flex-col items-center justify-start py-4 px-3 overflow-y-auto">
           {/* Clue area */}
-          <div className="w-full max-w-2xl mb-3 min-h-[68px]">
+          <div className="w-full max-w-4xl mb-3 min-h-[68px]">
             {showClueInput && <ClueInput />}
             {showClueDisplay && <ClueDisplay />}
             {!showClueInput && !showClueDisplay && (
